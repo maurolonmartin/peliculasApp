@@ -1,8 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { CarteleraResponse, Movie } from '../interfaces/cartelera-response';
+import { MovieResponse } from '../interfaces/movie-response';
+import { Cast, CreditsResponse } from '../interfaces/credits-response';
 
 @Injectable({
   providedIn: 'root'
@@ -26,7 +28,7 @@ export class PeliculasService {
   getCartelera():Observable<Movie[]> {
 
     if(this.cargando) {
-      return of([])
+      return of([]);
     }
 
     return this.http.get<CarteleraResponse>(`${this.baseURL}/movie/now_playing?`,{
@@ -36,6 +38,38 @@ export class PeliculasService {
       tap( () => {
         this.carteleraPage += 1;
       })
+    );
+  }
+
+  resetPage() {
+    this.carteleraPage = 1;
+  }
+
+  buscarPelicula( texto: string): Observable<Movie[]> {
+
+    const params = {...this.params, page: '1', query: texto }
+
+    return this.http.get<CarteleraResponse>(`${this.baseURL}/search/movie`, {
+      params
+    }).pipe(
+      map( resp => resp.results)
+    );
+  }
+
+  getDetallesPelicula( id: string) {
+    return this.http.get<MovieResponse>(`${this.baseURL}/movie/${id}`, {
+      params: this.params
+    }).pipe(
+      catchError( err => of(null))
+    );
+  }
+
+  getCast( id: string): Observable<Cast[]> {
+    return this.http.get<CreditsResponse>(`${this.baseURL}/movie/${id}/credits`, {
+      params: this.params
+    }).pipe(
+      map( resp => resp.cast),
+      catchError( err => of([]))
     );
   }
 }
